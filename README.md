@@ -15,7 +15,7 @@ A universal authentication orchestrator that handles both online and offline aut
 ## Installation
 
 ```bash
-npm install @tab/auth
+npm install tab-authenticator
 ```
 
 ## Quick Start
