@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tab Authentication Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>Tab Authentication Example</h1>
+        <div id="status"></div>
+        <div id="auth-form">
+            <input type="email" id="email" placeholder="Email" />
+            <input type="password" id="password" placeholder="Password" />
+            <button onclick="handleLogin()">Login</button>
+            <button onclick="handleSignup()">Sign Up</button>
+        </div>
+        <div id="user-info" style="display: none;">
+            <p>Welcome, <span id="user-email"></span>!</p>
+            <p>Status: <span id="user-status"></span></p>
+            <button onclick="handleLogout()">Logout</button>
+        </div>
+        <div id="network-status">Network: <span id="network-indicator">Checking...</span></div>
+    </div>
+
+    <script>
+        // This is a simplified version to demonstrate usage
+        // In a real implementation, you would use the built package
+        
+        // Simulated TabAuth global object
+        window.TabAuth = {
+            users: JSON.parse(localStorage.getItem('tab_users') || '{}'),
+            currentUser: JSON.parse(localStorage.getItem('tab_current_user') || 'null'),
+            isOnline: navigator.onLine,
+            
+            login: async function(credentials) {
+                // Simulate login
+                const user = this.users[credentials.email];
+                
+                if (user && user.password === credentials.password) {
+                    this.currentUser = user;
+                    localStorage.setItem('tab_current_user', JSON.stringify(user));
+                    
+                    this.updateUI();
+                    this.notify('login', user);
+                    
+                    return { success: true, user: user };
+                }
+                
+                return { success: false, error: 'Invalid credentials' };
+            },
+            
+            signup: async function(credentials) {
+                // Simulate signup
+                if (this.users[credentials.email]) {
+                    return { success: false, error: 'User already exists' };
+                }
+                
+                const user = {
+                    id: 'user_' + Date.now(),
+                    email: credentials.email,
+                    password: credentials.password, // In real app, this would be hashed
+                    profile: credentials.profile || {},
+                    createdAt: new Date().toISOString(),
+                    offline: true
+                };
+                
+                this.users[credentials.email] = user;
+                localStorage.setItem('tab_users', JSON.stringify(this.users));
+                
+                return await this.login(credentials);
+            },
+            
+            logout: async function() {
+                this.currentUser = null;
+                localStorage.removeItem('tab_current_user');
+                
+                this.updateUI();
+                this.notify('logout');
+                
+                return { success: true };
+            },
+            
+            isAuthenticated: function() {
+                return !!this.currentUser;
+            },
+            
+            getCurrentUser: function() {
+                return this.currentUser;
+            },
+            
+            isOffline: function() {
+                return !this.isOnline;
+            },
+            
+            on: function(event, callback) {
+                if (!this.listeners) this.listeners = {};
+                if (!this.listeners[event]) this.listeners[event] = [];
+                this.listeners[event].push(callback);
+            },
+            
+            notify: function(event, data) {
+                if (this.listeners && this.listeners[event]) {
+                    this.listeners[event].forEach(callback => callback(data));
+                }
+            },
+            
+            updateUI: function() {
+                const statusDiv = document.getElementById('status');
+                const authForm = document.getElementById('auth-form');
+                const userInfo = document.getElementById('user-info');
+                const userEmail = document.getElementById('user-email');
+                const userStatus = document.getElementById('user-status');
+                
+                if (this.currentUser) {
+                    userEmail.textContent = this.currentUser.email;
+                    userStatus.textContent = this.isOffline() ? 'Offline' : 'Online';
+                    authForm.style.display = 'none';
+                    userInfo.style.display = 'block';
+                    statusDiv.innerHTML = '<p style="color: green;">Authenticated</p>';
+                } else {
+                    authForm.style.display = 'block';
+                    userInfo.style.display = 'none';
+                    statusDiv.innerHTML = '<p style="color: red;">Not authenticated</p>';
+                }
+                
+                document.getElementById('network-indicator').textContent = 
+                    this.isOnline ? 'Online' : 'Offline';
+            }
+        };
+        
+        // Set up network event listeners
+        window.addEventListener('online', function() {
+            window.TabAuth.isOnline = true;
+            window.TabAuth.updateUI();
+            window.TabAuth.notify('networkChange', { isOnline: true });
+        });
+        
+        window.addEventListener('offline', function() {
+            window.TabAuth.isOnline = false;
+            window.TabAuth.updateUI();
+            window.TabAuth.notify('networkChange', { isOnline: false });
+        });
+        
+        // Set up auth event listeners
+        window.TabAuth.on('login', function(user) {
+            console.log('User logged in:', user);
+        });
+        
+        window.TabAuth.on('logout', function() {
+            console.log('User logged out');
+        });
+        
+        window.TabAuth.on('networkChange', function(status) {
+            console.log('Network status changed:', status);
+        });
+        
+        // Initialize UI
+        window.TabAuth.updateUI();
+        
+        // Event handlers
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                alert('Please enter both email and password');
+                return;
+            }
+            
+            const result = await window.TabAuth.login({ email, password });
+            
+            if (!result.success) {
+                alert('Login failed: ' + result.error);
+            }
+        }
+        
+        async function handleSignup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                alert('Please enter both email and password');
+                return;
+            }
+            
+            const result = await window.TabAuth.signup({ 
+                email, 
+                password,
+                profile: { name: email.split('@')[0] }
+            });
+            
+            if (!result.success) {
+                alert('Signup failed: ' + result.error);
+            }
+        }
+        
+        async function handleLogout() {
+            await window.TabAuth.logout();
+        }
+    </script>
+</body>
+</html>
