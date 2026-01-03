@@ -23,11 +23,11 @@ export default [
       nodeResolve({
         browser: true
       }),
-      commonjs(),
       babel({
         babelHelpers: 'bundled',
         exclude: ['node_modules/**']
       }),
+      commonjs(),
       isProduction && terser()
     ].filter(Boolean),
     external: ['crypto-js', 'localforage']
@@ -43,11 +43,11 @@ export default [
     },
     plugins: [
       nodeResolve(),
-      commonjs(),
       babel({
         babelHelpers: 'bundled',
         exclude: ['node_modules/**']
       }),
+      commonjs(),
       isProduction && terser()
     ].filter(Boolean),
     external: ['crypto-js', 'localforage', 'node-fetch']
@@ -63,11 +63,11 @@ export default [
     },
     plugins: [
       nodeResolve(),
-      commonjs(),
       babel({
         babelHelpers: 'bundled',
         exclude: ['node_modules/**']
       }),
+      commonjs(),
       isProduction && terser()
     ].filter(Boolean),
     external: ['crypto-js', 'localforage', 'node-fetch']
@@ -83,12 +83,12 @@ export default [
     },
     plugins: [
       nodeResolve(),
-      commonjs(),
       babel({
         babelHelpers: 'bundled',
         exclude: ['node_modules/**'],
-        presets: ['@babel/preset-react']
+        presets: ['@babel/preset-env', '@babel/preset-react']
       }),
+      commonjs(),
       isProduction && terser()
     ].filter(Boolean),
     external: ['react', 'crypto-js', 'localforage', 'node-fetch']

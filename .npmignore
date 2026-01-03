@@ -1,0 +1,13 @@
+# Dependencies
+node_modules
+
+# Tests
+test/
+tests/
+
+# Build artifacts that aren't needed
+*.test.js
+*.config.js
+
+# Example files that aren't needed in the package
+example.html
