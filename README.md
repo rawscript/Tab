@@ -24,7 +24,7 @@ npm install tab-authenticator
 
 ```jsx
 import React from 'react';
-import { AuthProvider, useAuth } from '@tab/auth/react';
+import { AuthProvider, useAuth } from 'tab-authenticator/react';
 
 // Wrap your app with AuthProvider
 const App = () => {
@@ -76,7 +76,7 @@ const LoginComponent = () => {
 ### Vanilla JavaScript
 
 ```javascript
-import { TabAuth } from '@tab/auth';
+import { TabAuth } from 'tab-authenticator';
 
 // Initialize authentication
 const auth = new TabAuth({
@@ -223,7 +223,7 @@ The library provides seamless offline functionality:
 You can implement custom authentication providers by extending the BaseAdapter:
 
 ```javascript
-import { BaseAdapter } from '@tab/auth';
+import { BaseAdapter } from 'tab-authenticator';
 
 class CustomAuthProvider extends BaseAdapter {
   constructor(config) {
