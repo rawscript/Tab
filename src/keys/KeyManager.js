@@ -226,45 +226,6 @@ class KeyManager {
   }
 }
 
-// Extend EncryptionUtils to add key-specific methods
-const originalEncrypt = EncryptionUtils.prototype.encrypt;
-const originalDecrypt = EncryptionUtils.prototype.decrypt;
 
-EncryptionUtils.prototype.encryptWithKey = function(data, key) {
-  try {
-    const jsonString = JSON.stringify(data);
-    const encrypted = CryptoJS.AES.encrypt(jsonString, key);
-    return encrypted.toString();
-  } catch (error) {
-    console.error('Encryption failed:', error);
-    throw new Error('Failed to encrypt data');
-  }
-};
-
-EncryptionUtils.prototype.decryptWithKey = function(encryptedData, key) {
-  try {
-    const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
-    const decryptedString = decrypted.toString(CryptoJS.enc.Utf8);
-    
-    if (!decryptedString) {
-      throw new Error('Decryption failed - invalid data');
-    }
-    
-    return JSON.parse(decryptedString);
-  } catch (error) {
-    console.error('Decryption failed:', error);
-    throw new Error('Failed to decrypt data');
-  }
-};
-
-EncryptionUtils.prototype.encrypt = function(data) {
-  // Use the original method
-  return originalEncrypt.call(this, data);
-};
-
-EncryptionUtils.prototype.decrypt = function(encryptedData) {
-  // Use the original method
-  return originalDecrypt.call(this, encryptedData);
-};
 
 export { KeyManager };

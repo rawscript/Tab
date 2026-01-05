@@ -208,6 +208,45 @@ class EncryptionUtils {
   base64Decode(str) {
     return decodeURIComponent(escape(atob(str)));
   }
+
+  /**
+   * Encrypt data using AES encryption with a specific key
+   * @param {any} data - Data to encrypt
+   * @param {string} key - Encryption key to use
+   * @returns {string} - Encrypted string
+   */
+  encryptWithKey(data, key) {
+    try {
+      const jsonString = JSON.stringify(data);
+      const encrypted = CryptoJS.AES.encrypt(jsonString, key);
+      return encrypted.toString();
+    } catch (error) {
+      console.error('Encryption failed:', error);
+      throw new Error('Failed to encrypt data');
+    }
+  }
+
+  /**
+   * Decrypt data using AES decryption with a specific key
+   * @param {string} encryptedData - Encrypted string to decrypt
+   * @param {string} key - Decryption key to use
+   * @returns {any} - Decrypted data
+   */
+  decryptWithKey(encryptedData, key) {
+    try {
+      const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
+      const decryptedString = decrypted.toString(CryptoJS.enc.Utf8);
+      
+      if (!decryptedString) {
+        throw new Error('Decryption failed - invalid data');
+      }
+      
+      return JSON.parse(decryptedString);
+    } catch (error) {
+      console.error('Decryption failed:', error);
+      throw new Error('Failed to decrypt data');
+    }
+  }
 }
 
 export { EncryptionUtils };

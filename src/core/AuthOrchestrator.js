@@ -285,44 +285,135 @@ class AuthOrchestrator {
 
   // Public API methods
   async login(credentials) {
+    // Track in analytics
+    const startTime = Date.now();
+    
     if (this.isOnline) {
       try {
         const result = await this.onlineAuth.login(credentials);
         if (result.success) {
+          // Check if this is a new account that needs migration
+          const needsMigration = await this.migrationManager.needsMigration(result.user);
+          if (needsMigration) {
+            await this.migrationManager.migrateAccount(result.user, this.config.provider);
+          }
+          
           this.currentUser = result.user;
           await this.saveCurrentUser();
+          
+          // Initialize analytics with new user
+          this.analyticsManager.initialize(result.user.id);
         }
+        
+        // Track in analytics
+        this.analyticsManager.trackAuthEvent('login', {
+          success: result.success,
+          provider: this.config.provider,
+          userId: result.user?.id
+        }, Date.now() - startTime);
+        
         return result;
       } catch (error) {
         console.warn('Online login failed, attempting offline login:', error);
         // Fall back to offline login
+        
+        // Track in analytics
+        this.analyticsManager.trackError('login_failed', error.message, {
+          provider: this.config.provider,
+          userId: credentials.email
+        });
       }
     }
     
     // Try offline login
-    return await this.localAuth.login(credentials);
+    const result = await this.localAuth.login(credentials);
+    
+    if (result.success) {
+      this.currentUser = result.user;
+      
+      // Initialize analytics with user
+      if (result.user.id) {
+        this.analyticsManager.initialize(result.user.id);
+      }
+    }
+    
+    // Track in analytics
+    this.analyticsManager.trackAuthEvent('login', {
+      success: result.success,
+      provider: 'offline',
+      userId: result.user?.id
+    }, Date.now() - startTime);
+    
+    return result;
   }
 
   async signup(credentials) {
+    // Track in analytics
+    const startTime = Date.now();
+    
     if (this.isOnline) {
       try {
         const result = await this.onlineAuth.signup(credentials);
         if (result.success) {
+          // Check if this is a new account that needs migration
+          const needsMigration = await this.migrationManager.needsMigration(result.user);
+          if (needsMigration) {
+            await this.migrationManager.migrateAccount(result.user, this.config.provider);
+          }
+          
           this.currentUser = result.user;
           await this.saveCurrentUser();
+          
+          // Initialize analytics with new user
+          this.analyticsManager.initialize(result.user.id);
         }
+        
+        // Track in analytics
+        this.analyticsManager.trackAuthEvent('signup', {
+          success: result.success,
+          provider: this.config.provider,
+          userId: result.user?.id
+        }, Date.now() - startTime);
+        
         return result;
       } catch (error) {
         console.warn('Online signup failed, attempting offline signup:', error);
         // Fall back to offline signup if allowed
+        
+        // Track in analytics
+        this.analyticsManager.trackError('signup_failed', error.message, {
+          provider: this.config.provider,
+          userId: credentials.email
+        });
       }
     }
     
     // Try offline signup
-    return await this.localAuth.signup(credentials);
+    const result = await this.localAuth.signup(credentials);
+    
+    if (result.success) {
+      this.currentUser = result.user;
+      
+      // Initialize analytics with user
+      if (result.user.id) {
+        this.analyticsManager.initialize(result.user.id);
+      }
+    }
+    
+    // Track in analytics
+    this.analyticsManager.trackAuthEvent('signup', {
+      success: result.success,
+      provider: 'offline',
+      userId: result.user?.id
+    }, Date.now() - startTime);
+    
+    return result;
   }
 
   async logout() {
+    // Track in analytics
+    const startTime = Date.now();
+    
     // Clear current user
     this.currentUser = null;
     
@@ -337,6 +428,12 @@ class AuthOrchestrator {
     
     // Logout from local auth as well
     await this.localAuth.logout();
+    
+    // Track in analytics
+    this.analyticsManager.trackAuthEvent('logout', {
+      success: true,
+      userId: this.currentUser?.id
+    }, Date.now() - startTime);
   }
 
   async authenticateResource(resourceUrl, options = {}) {
@@ -446,7 +543,32 @@ class AuthOrchestrator {
   }
 
   destroy() {
+    // Stop sync process
     this.stopSyncProcess();
+    
+    // Clean up enhanced modules
+    if (this.syncStatusManager) {
+      this.syncStatusManager.reset();
+    }
+    
+    if (this.offlineQueue) {
+      this.offlineQueue.clear();
+    }
+    
+    if (this.analyticsManager) {
+      this.analyticsManager.stopFlushTimer();
+    }
+    
+    // Save cache and queue to storage
+    if (this.resourceCache) {
+      this.resourceCache.saveToStorage();
+    }
+    
+    if (this.offlineQueue) {
+      this.offlineQueue.saveToStorage();
+    }
+    
+    // Clear current user
     this.currentUser = null;
   }
 }
