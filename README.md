@@ -29,10 +29,10 @@ import { AuthProvider, useAuth } from 'tab-authenticator/react';
 // Wrap your app with AuthProvider
 const App = () => {
   const authConfig = {
-    encryptionKey: 'your-encryption-key',
+    encryptionKey: 'choosen-encryption-key',
     provider: 'supabase',
-    supabaseUrl: 'https://your-project.supabase.co',
-    supabaseKey: 'your-anon-key'
+    supabaseUrl: 'https://the-project.supabase.co',
+    supabaseKey: 'project-anon-key'
   };
 
   return (
@@ -80,10 +80,10 @@ import { TabAuth } from 'tab-authenticator';
 
 // Initialize authentication
 const auth = new TabAuth({
-  encryptionKey: 'your-encryption-key',
+  encryptionKey: 'the-encryption-key',
   provider: 'supabase',
-  supabaseUrl: 'https://your-project.supabase.co',
-  supabaseKey: 'your-anon-key'
+  supabaseUrl: 'https://the-project.supabase.co',
+  supabaseKey: 'Project-anon-key'
 });
 
 // Set up event listeners
@@ -124,8 +124,8 @@ if (loginResult.success) {
 ```javascript
 {
   provider: 'supabase',
-  supabaseUrl: 'https://your-project.supabase.co',
-  supabaseKey: 'your-anon-key'
+  supabaseUrl: 'https://the-project.supabase.co',
+  supabaseKey: 'project-anon-key'
 }
 ```
 
@@ -133,7 +133,7 @@ if (loginResult.success) {
 ```javascript
 {
   provider: 'firebase',
-  apiKey: 'your-api-key',
+  apiKey: 'the-api-key',
   authDomain: 'your-project.firebaseapp.com'
 }
 ```

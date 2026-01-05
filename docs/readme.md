@@ -28,10 +28,10 @@ import { AuthProvider, useAuth } from 'tab-authenticator/react';
 
 function App() {
   const authConfig = {
-    encryptionKey: 'your-encryption-key',
+    encryptionKey: 'the-encryption-key',
     provider: 'supabase',
     supabaseUrl: 'https://your-project.supabase.co',
-    supabaseKey: 'your-anon-key'
+    supabaseKey: 'project-anon-key'
   };
 
   return (
@@ -57,7 +57,7 @@ const auth = new TabAuth({
   encryptionKey: 'your-encryption-key',
   provider: 'supabase',
   supabaseUrl: 'https://your-project.supabase.co',
-  supabaseKey: 'your-anon-key'
+  supabaseKey: 'project-anon-key'
 });
 
 // Use authentication methods...
