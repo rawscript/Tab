@@ -1,6 +1,17 @@
-# Tab Authentication Library
+# Tab Authenticator
 
-A universal authentication orchestrator that handles both online and offline authentication seamlessly.
+A universal authentication orchestrator that handles both online and offline authentication, allowing users to create accounts and authenticate even when offline, with automatic synchronization when connectivity is restored.
+
+## Enhanced Features
+
+- **Real-time Synchronization Status**: Detailed feedback about sync progress and status
+- **Conflict Resolution**: Multiple strategies to resolve conflicts between offline and online data
+- **Enhanced Key Management**: Sophisticated encryption key management for different users with rotation
+- **Migration Path**: Clear transition from existing online accounts to offline capabilities
+- **Advanced Resource Caching**: Configurable caching policies (cache-first, network-first, stale-while-revalidate)
+- **Offline Transaction Queue**: Queue operations when offline and replay when connectivity is restored
+- **Enhanced Provider Support**: Additional adapters for AWS Cognito, Okta, and Azure AD
+- **Performance Monitoring**: Built-in analytics for tracking authentication performance and usage patterns
 
 ## Features
 
