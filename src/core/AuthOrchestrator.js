@@ -9,6 +9,15 @@ import { NetworkManager } from '../utils/NetworkManager';
 import { StorageManager } from '../utils/StorageManager';
 import { EncryptionUtils } from '../utils/EncryptionUtils';
 
+// Enhanced modules
+import { SyncStatusManager } from '../sync/SyncStatusManager';
+import { ConflictResolver } from '../conflict/ConflictResolver';
+import { KeyManager } from '../keys/KeyManager';
+import { MigrationManager } from '../migrate/MigrationManager';
+import { ResourceCache } from '../cache/ResourceCache';
+import { OfflineQueue } from '../queue/OfflineQueue';
+import { AnalyticsManager } from '../analytics/AnalyticsManager';
+
 class AuthOrchestrator {
   constructor(config = {}) {
     this.config = {
@@ -23,6 +32,15 @@ class AuthOrchestrator {
     this.networkManager = new NetworkManager();
     this.storageManager = new StorageManager(this.config.storagePrefix);
     this.encryptionUtils = new EncryptionUtils(this.config.encryptionKey);
+    
+    // Initialize enhanced modules
+    this.syncStatusManager = new SyncStatusManager();
+    this.conflictResolver = new ConflictResolver();
+    this.keyManager = new KeyManager();
+    this.migrationManager = new MigrationManager(this.storageManager);
+    this.resourceCache = new ResourceCache(this.config.cacheOptions || {});
+    this.offlineQueue = new OfflineQueue();
+    this.analyticsManager = new AnalyticsManager(this.config.analytics || {});
 
     this.isOnline = true;
     this.currentUser = null;
@@ -32,11 +50,21 @@ class AuthOrchestrator {
   }
 
   async initialize() {
+    // Initialize enhanced modules
+    await this.keyManager.initialize(this.config.encryptionKey);
+    await this.resourceCache.loadFromStorage();
+    await this.offlineQueue.loadFromStorage();
+    
     // Check network status on initialization
     this.isOnline = await this.networkManager.isOnline();
     
     // Load current user from storage
     await this.loadCurrentUser();
+    
+    // Initialize analytics if user is available
+    if (this.currentUser) {
+      this.analyticsManager.initialize(this.currentUser.id);
+    }
     
     // Set up network status monitoring
     this.setupNetworkMonitoring();
@@ -63,13 +91,34 @@ class AuthOrchestrator {
   async handleOnlineStatus() {
     console.log('Network is online, attempting to sync authentication state');
     
-    // If user was authenticated offline, sync with online service
-    if (this.currentUser && this.currentUser.offline) {
-      await this.syncOfflineAuth();
-    }
+    // Update sync status
+    this.syncStatusManager.startSync();
     
-    // Start sync process
-    this.startSyncProcess();
+    try {
+      // If user was authenticated offline, sync with online service
+      if (this.currentUser && this.currentUser.offline) {
+        await this.syncOfflineAuth();
+      }
+      
+      // Process offline queue
+      if (this.offlineQueue.getStatus().total > 0) {
+        await this.offlineQueue.handleConnectivityRestored(this.onlineAuth);
+      }
+      
+      // Start sync process
+      this.startSyncProcess();
+      
+      // Track in analytics
+      this.analyticsManager.trackAuthEvent('online_status_restored', {
+        previousStatus: 'offline',
+        userId: this.currentUser?.id
+      });
+      
+      this.syncStatusManager.completeSync();
+    } catch (error) {
+      this.syncStatusManager.recordError(error);
+      this.analyticsManager.trackError('online_status_sync', error.message);
+    }
   }
 
   async handleOfflineStatus() {
@@ -161,17 +210,42 @@ class AuthOrchestrator {
         const verifiedUser = await this.onlineAuth.verifySession();
         
         if (verifiedUser) {
-          this.currentUser = {
-            ...verifiedUser,
-            offline: false
-          };
+          // Check for conflicts between offline and online data
+          if (this.currentUser.lastLoginAt && verifiedUser.lastLoginAt) {
+            // Create conflict object
+            const conflict = this.conflictResolver.createConflict(
+              { data: this.currentUser, timestamp: this.currentUser.lastLoginAt },
+              { data: verifiedUser, timestamp: verifiedUser.lastLoginAt }
+            );
+            
+            // Resolve conflict using default strategy
+            const resolvedUser = this.conflictResolver.resolve(conflict);
+            
+            this.currentUser = {
+              ...resolvedUser,
+              offline: false
+            };
+          } else {
+            // No conflict, just update
+            this.currentUser = {
+              ...verifiedUser,
+              offline: false
+            };
+          }
           
           await this.saveCurrentUser();
           console.log('Successfully verified online status for user');
+          
+          // Track in analytics
+          this.analyticsManager.trackAuthEvent('sync_success', {
+            userId: this.currentUser.id,
+            syncType: 'user_data'
+          });
         }
       }
     } catch (error) {
       console.warn('Authentication sync failed:', error);
+      this.analyticsManager.trackError('sync_failed', error.message);
     }
   }
 
