@@ -1,6 +1,6 @@
 {
   "name": "tab-authenticator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A universal authentication orchestrator that handles both online and offline authentication",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -28,6 +28,9 @@
     "crypto-js": "^4.2.0",
     "node-fetch": "^2.7.0",
     "localforage": "^1.10.0"
+  },
+  "optionalDependencies": {
+    "@supabase/supabase-js": "^2.44.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

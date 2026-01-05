@@ -938,4 +938,4 @@ class DefaultOnlineAdapter extends BaseAdapter {
   }
 }
 
-export { OnlineAuth };
+export { OnlineAuth, BaseAdapter };
