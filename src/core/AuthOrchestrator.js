@@ -339,7 +339,7 @@ class AuthOrchestrator {
     await this.localAuth.logout();
   }
 
-  async authenticateResource(resourceUrl) {
+  async authenticateResource(resourceUrl, options = {}) {
     if (!this.currentUser) {
       return {
         success: false,
@@ -347,15 +347,60 @@ class AuthOrchestrator {
       };
     }
 
+    // Use resource cache if enabled
+    if (options.useCache !== false) {
+      const cachedResult = await this.resourceCache.get(
+        resourceUrl,
+        async () => {
+          // Fetch from online service if not in cache
+          if (!this.isOnline) {
+            // Check if resource is available offline
+            if (this.isResourceAvailableOffline(resourceUrl)) {
+              return {
+                success: true,
+                user: this.currentUser,
+                offline: true
+              };
+            } else {
+              return {
+                success: false,
+                error: 'Resource requires online access',
+                offline: true,
+                user: this.currentUser
+              };
+            }
+          }
+          
+          // Online resource authentication
+          return await this.onlineAuth.authenticateResource(resourceUrl, this.currentUser);
+        },
+        options
+      );
+      
+      return cachedResult;
+    }
+    
     if (!this.isOnline) {
       // Check if resource is available offline
       if (this.isResourceAvailableOffline(resourceUrl)) {
+        // Track offline resource usage
+        this.analyticsManager.trackOfflineUsage({
+          resourceUrl,
+          userId: this.currentUser.id,
+          timestamp: new Date().toISOString()
+        });
+        
         return {
           success: true,
           user: this.currentUser,
           offline: true
         };
       } else {
+        // Add to offline queue if needed
+        if (options.queueIfOffline) {
+          await this.offlineQueue.addResourceOperation(resourceUrl, options);
+        }
+        
         return {
           success: false,
           error: 'Resource requires online access',
@@ -366,7 +411,16 @@ class AuthOrchestrator {
     }
 
     // Online resource authentication
-    return await this.onlineAuth.authenticateResource(resourceUrl, this.currentUser);
+    const result = await this.onlineAuth.authenticateResource(resourceUrl, this.currentUser);
+    
+    // Track in analytics
+    this.analyticsManager.trackAuthEvent('resource_access', {
+      resourceUrl,
+      userId: this.currentUser.id,
+      success: result.success
+    });
+    
+    return result;
   }
 
   isResourceAvailableOffline(resourceUrl) {
